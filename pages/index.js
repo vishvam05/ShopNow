@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import Head from "next/head";
 
-// renders stars based on rating score
 function StarRating({ score }) {
   const filled = Math.round(score);
   return (
@@ -211,29 +210,41 @@ export default function Home({ products, error }) {
 }
 
 
+//
+
 export async function getServerSideProps() {
-  try {
-    const response = await fetch("https://fakestoreapi.com/products");
+  const URLS = [
+    "https://fakestoreapi.com/products",
+    "https://dummyjson.com/products?limit=20", // fallback API
+  ];
 
-    if (!response.ok) {
-      throw new Error("Failed to fetch from API");
+  for (const url of URLS) {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 5000); // 5s timeout
+
+      const response = await fetch(url, { signal: controller.signal });
+      clearTimeout(timeout);
+
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+      const data = await response.json();
+
+      const products = Array.isArray(data) ? data : data.products.map((p) => ({
+        id: p.id,
+        title: p.title,
+        price: p.price,
+        category: p.category,
+        image: p.thumbnail,
+        rating: { rate: p.rating, count: p.stock },
+      }));
+
+      return { props: { products, error: null } };
+
+    } catch (err) {
+      console.error(`Failed to fetch from ${url}:`, err.message);
     }
-
-    const products = await response.json();
-
-    return {
-      props: {
-        products,
-        error: null,
-      },
-    };
-  } catch (err) {
-    console.error("Error fetching products:", err.message);
-    return {
-      props: {
-        products: [],
-        error: err.message,
-      },
-    };
   }
+
+  return { props: { products: [], error: "Could not load products. Please try again later." } };
 }
