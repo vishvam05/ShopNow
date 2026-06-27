@@ -221,7 +221,7 @@ export async function getServerSideProps() {
   for (const url of URLS) {
     try {
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 5000); // 5s timeout
+      const timeout = setTimeout(() => controller.abort(), 5000); 
 
       const response = await fetch(url, { signal: controller.signal });
       clearTimeout(timeout);
